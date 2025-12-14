@@ -13,7 +13,7 @@ namespace xsf_simple_cache {
 template <typename K, typename V>
 class XSFLruCacheUnsafe : public XSFCache<K, V> {
    public:
-    XSFLruCacheUnsafe(size_t capacity) : capacity_(capacity) {}
+    explicit XSFLruCacheUnsafe(size_t capacity) : capacity_(capacity) {}
 
     void put(const K& key, const V& value) override {
         if (capacity_ == 0) {
@@ -95,6 +95,8 @@ class XSFLruCacheUnsafe : public XSFCache<K, V> {
 template <typename K, typename V>
 class XSFLruKCache : public XSFCache<K, V> {
    public:
+    explicit XSFLruKCache(size_t capacity)
+        : XSFLruKCache(capacity, 2) {}  // 默认 k=2
     XSFLruKCache(size_t capacity, size_t k)
         : k_(k),
           capacity_(capacity),
