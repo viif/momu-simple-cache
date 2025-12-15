@@ -9,4 +9,5 @@
 | XSFCache        | 接口，要求实现put、get两个方法。                             |
 | XSFLruCache     | LRU缓存类，使用最近最少使用算法，置换最近最久未使用的缓存数据。 |
 | XSFLruKCache    | LRU-k缓存类，改进LRU算法，置换最近k次访问最久未使用的缓存数据。 |
+| XSFLfuCache     | LFU缓存类，使用最不经常使用算法，置换使用频率最小的缓存数据。 |
 | XSFShardedCache | 基于哈希的分片缓存，利用hash机制对全量数据做分片处理，将缓存数据分散到若干个子缓存上。子缓存可采用上述任一具体缓存类。 |
