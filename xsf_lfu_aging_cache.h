@@ -9,14 +9,19 @@
 
 namespace xsf_simple_cache {
 
-template <typename K, typename V>
+template <typename K, typename V, typename Hash = std::hash<K>,
+          typename KeyEqual = std::equal_to<K>>
 class XSFLfuAgingCache : public XSFCache<K, V> {
    public:
-    explicit XSFLfuAgingCache(size_t capacity)
-        : capacity_(capacity), aging_threshold_(10) {}
-
-    XSFLfuAgingCache(size_t capacity, uint32_t aging_threshold)
-        : capacity_(capacity), aging_threshold_(aging_threshold) {}
+    explicit XSFLfuAgingCache(size_t capacity, uint32_t aging_threshold = 10,
+                              Hash hash = Hash{},
+                              KeyEqual key_equal = KeyEqual{})
+        : capacity_(capacity),
+          aging_threshold_(10),
+          hash_(std::move(hash)),
+          key_equal_(std::move(key_equal)),
+          key2freq_(0, hash, key_equal),
+          key2node_(0, hash, key_equal) {}
 
     void put(const K& key, const V& value) override {
         if (capacity_ == 0) {
@@ -75,15 +80,13 @@ class XSFLfuAgingCache : public XSFCache<K, V> {
         }
         avg_freq_ /= key2freq_.size();
         // 重新构建频率到节点、key到节点的映射
-        std::unordered_map<uint32_t, std::list<Node>> new_freq2nodes;
-        std::unordered_map<K, typename std::list<Node>::iterator> new_key2node;
+        freq2nodes_.clear();
+        key2node_.clear();
         for (auto& [k, it] : key2node_) {
             uint32_t f = key2freq_[k];
-            new_freq2nodes[f].emplace_back(k, it->value);
-            new_key2node[k] = std::prev(new_freq2nodes[f].end());
+            freq2nodes_[f].emplace_back(k, it->value);
+            key2node_[k] = std::prev(freq2nodes_[f].end());
         }
-        freq2nodes_ = std::move(new_freq2nodes);
-        key2node_ = std::move(new_key2node);
         // 重置平均频率
         for (const auto& [k, f] : key2freq_) {
             avg_freq_ += f;
@@ -147,9 +150,13 @@ class XSFLfuAgingCache : public XSFCache<K, V> {
     uint32_t avg_freq_{0};
     std::mutex mutex_;
 
-    std::unordered_map<K, uint32_t> key2freq_;
+    Hash hash_;
+    KeyEqual key_equal_;
+
+    std::unordered_map<K, uint32_t, Hash, KeyEqual> key2freq_;
     std::unordered_map<uint32_t, std::list<Node>> freq2nodes_;
-    std::unordered_map<K, typename std::list<Node>::iterator> key2node_;
+    std::unordered_map<K, typename std::list<Node>::iterator, Hash, KeyEqual>
+        key2node_;
 };
 
 }  // namespace xsf_simple_cache
