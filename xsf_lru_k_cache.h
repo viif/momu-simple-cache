@@ -10,10 +10,13 @@
 namespace xsf_simple_cache {
 
 // 非线程安全的基础 LRU 缓存实现
-template <typename K, typename V>
+template <typename K, typename V, typename Hash = std::hash<K>,
+          typename KeyEqual = std::equal_to<K>>
 class XSFLruCacheUnsafe : public XSFCache<K, V> {
    public:
-    explicit XSFLruCacheUnsafe(size_t capacity) : capacity_(capacity) {}
+    explicit XSFLruCacheUnsafe(size_t capacity, Hash hash = Hash{},
+                               KeyEqual key_equal = KeyEqual{})
+        : capacity_(capacity), key2node_(0, hash, key_equal) {}
 
     void put(const K& key, const V& value) override {
         if (capacity_ == 0) {
@@ -89,19 +92,20 @@ class XSFLruCacheUnsafe : public XSFCache<K, V> {
     const size_t capacity_;
 
     std::list<Node> nodes_;
-    std::unordered_map<K, typename std::list<Node>::iterator> key2node_;
+    std::unordered_map<K, typename std::list<Node>::iterator, Hash, KeyEqual>
+        key2node_;
 };
 
-template <typename K, typename V>
+template <typename K, typename V, typename Hash = std::hash<K>,
+          typename KeyEqual = std::equal_to<K>>
 class XSFLruKCache : public XSFCache<K, V> {
    public:
-    explicit XSFLruKCache(size_t capacity)
-        : XSFLruKCache(capacity, 2) {}  // 默认 k=2
-    XSFLruKCache(size_t capacity, size_t k)
+    explicit XSFLruKCache(size_t capacity, size_t k = 2, Hash hash = Hash{},
+                          KeyEqual key_equal = KeyEqual{})
         : k_(k),
           capacity_(capacity),
-          history_lru_(capacity),
-          cache_lru_(capacity) {}
+          history_lru_(capacity, hash, key_equal),
+          cache_lru_(capacity, hash, key_equal) {}
 
     void put(const K& key, const V& value) override {
         if (capacity_ == 0) {
@@ -186,8 +190,10 @@ class XSFLruKCache : public XSFCache<K, V> {
         V value;
     };
 
-    XSFLruCacheUnsafe<K, AccessRecord> history_lru_;  // 访问次数小于 k 的记录
-    XSFLruCacheUnsafe<K, V> cache_lru_;               // 访问次数达到 k 的记录
+    XSFLruCacheUnsafe<K, AccessRecord, Hash, KeyEqual>
+        history_lru_;  // 访问次数小于 k 的记录
+    XSFLruCacheUnsafe<K, V, Hash, KeyEqual>
+        cache_lru_;  // 访问次数达到 k 的记录
 };
 
 }  // namespace xsf_simple_cache
