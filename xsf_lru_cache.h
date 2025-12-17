@@ -1,6 +1,7 @@
 #ifndef XSF_LRU_CACHE_H
 #define XSF_LRU_CACHE_H
 
+#include <functional>
 #include <list>
 #include <mutex>
 #include <unordered_map>
@@ -9,10 +10,13 @@
 
 namespace xsf_simple_cache {
 
-template <typename K, typename V>
+template <typename K, typename V, typename Hash = std::hash<K>,
+          typename KeyEqual = std::equal_to<K>>
 class XSFLruCache : public XSFCache<K, V> {
    public:
-    explicit XSFLruCache(size_t capacity) : capacity_(capacity) {}
+    explicit XSFLruCache(size_t capacity, Hash hash = Hash{},
+                         KeyEqual key_equal = KeyEqual{})
+        : capacity_(capacity), key2node_(0, hash, key_equal) {}
 
     void put(const K& key, const V& value) override {
         if (capacity_ == 0) {
@@ -68,7 +72,8 @@ class XSFLruCache : public XSFCache<K, V> {
     const size_t capacity_;
 
     std::list<Node> nodes_;
-    std::unordered_map<K, typename std::list<Node>::iterator> key2node_;
+    std::unordered_map<K, typename std::list<Node>::iterator, Hash, KeyEqual>
+        key2node_;
     std::mutex mutex_;
 };
 
