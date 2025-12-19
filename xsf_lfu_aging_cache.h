@@ -153,7 +153,7 @@ class XSFLfuAgingCache : public XSFCache<K, V> {
         Node(const K& k, const V& v) : key(k), value(v) {}
     };
     const size_t capacity_;
-    const uint8_t aging_threshold_{10};
+    const uint8_t aging_threshold_;
     uint8_t min_freq_{0};
     uint8_t avg_freq_{0};
     std::mutex mutex_;
@@ -170,14 +170,19 @@ class XSFLfuAgingCacheCreator : public XSFCacheCreator<K, V> {
    public:
     using cache_type = XSFLfuAgingCache<K, V, Hash, KeyEqual>;
 
-    explicit XSFLfuAgingCacheCreator(Hash hash = Hash{},
-                                     KeyEqual eq = KeyEqual())
-        : hash_(std::move(hash)), key_equal_(std::move(eq)) {}
+    explicit XSFLfuAgingCacheCreator(
+        Hash hash = Hash{}, KeyEqual eq = KeyEqual(),
+        uint8_t aging_threshold = cache_type::DEFAULT_AGING_THRESHOLD)
+        : hash_(std::move(hash)),
+          key_equal_(std::move(eq)),
+          aging_threshold_(aging_threshold) {}
 
     std::unique_ptr<XSFCache<K, V>> create(size_t capacity) const override {
-        return std::make_unique<cache_type>(
-            capacity, cache_type::DEFAULT_AGING_THRESHOLD, hash_, key_equal_);
+        return std::make_unique<cache_type>(capacity, aging_threshold_, hash_,
+                                            key_equal_);
     }
+
+    uint8_t aging_threshold_{cache_type::DEFAULT_AGING_THRESHOLD};
 
    private:
     Hash hash_;

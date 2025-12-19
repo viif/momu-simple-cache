@@ -204,13 +204,15 @@ class XSFLruKCacheCreator : public XSFCacheCreator<K, V> {
    public:
     using cache_type = XSFLruKCache<K, V, Hash, KeyEqual>;
 
-    explicit XSFLruKCacheCreator(Hash hash = Hash{}, KeyEqual eq = KeyEqual())
-        : hash_(std::move(hash)), key_equal_(std::move(eq)) {}
+    explicit XSFLruKCacheCreator(Hash hash = Hash{}, KeyEqual eq = KeyEqual(),
+                                 size_t k = cache_type::DEFAULT_K)
+        : hash_(std::move(hash)), key_equal_(std::move(eq)), k_(k) {}
 
     std::unique_ptr<XSFCache<K, V>> create(size_t capacity) const override {
-        return std::make_unique<cache_type>(capacity, cache_type::DEFAULT_K,
-                                            hash_, key_equal_);
+        return std::make_unique<cache_type>(capacity, k_, hash_, key_equal_);
     }
+
+    size_t k_{cache_type::DEFAULT_K};
 
    private:
     Hash hash_;
