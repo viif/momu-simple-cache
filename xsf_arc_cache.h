@@ -43,18 +43,6 @@ class XSFArcGhostList {
         key2key_.erase(key);
     }
 
-    void increaseCapacity() { capacity_++; }
-
-    void decreaseCapacity() {
-        if (capacity_ == 0) {
-            return;
-        }
-        capacity_--;
-        if (keys_.size() > capacity_) {
-            pop();
-        }
-    }
-
    private:
     void pop() {
         const K& old_key = keys_.front();
@@ -62,7 +50,7 @@ class XSFArcGhostList {
         keys_.pop_front();
     }
 
-    size_t capacity_;
+    const size_t capacity_;
     std::list<K> keys_;
     std::unordered_map<K, typename std::list<K>::iterator, Hash, KeyEqual>
         key2key_;
@@ -110,10 +98,7 @@ class XSFArcLruList {
         return key2node_.at(key)->count;
     }
 
-    void increaseCapacity() {
-        capacity_++;
-        ghost_list_.increaseCapacity();
-    }
+    void increaseCapacity() { capacity_++; }
 
     void decreaseCapacity() {
         if (capacity_ == 0) {
@@ -123,7 +108,6 @@ class XSFArcLruList {
         if (nodes_.size() > capacity_) {
             popLeastRecently();
         }
-        ghost_list_.decreaseCapacity();
     }
 
     bool containsInGhostList(const K& key) const {
@@ -212,10 +196,7 @@ class XSFArcLfuList {
 
     bool contains(const K& key) const { return key2node_.count(key) != 0; }
 
-    void increaseCapacity() {
-        capacity_++;
-        ghost_list_.increaseCapacity();
-    }
+    void increaseCapacity() { capacity_++; }
 
     void decreaseCapacity() {
         if (capacity_ == 0) {
@@ -225,7 +206,6 @@ class XSFArcLfuList {
         if (key2node_.size() > capacity_) {
             removeMinFreqKey();
         }
-        ghost_list_.decreaseCapacity();
     }
 
     bool containsInGhostList(const K& key) const {
