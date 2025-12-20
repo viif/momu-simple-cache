@@ -3,7 +3,9 @@
 
 #include <functional>
 #include <list>
+#include <map>
 #include <memory>
+#include <mutex>
 #include <unordered_map>
 
 #include "xsf_cache.h"
@@ -233,7 +235,7 @@ class XSFArcLfuList {
             freq2nodes_.erase(freq);
             if (freq == min_freq_) {
                 // 更新最小频率
-                min_freq_++;
+                min_freq_ = freq2nodes_.begin()->first;
             }
         }
         // 更新 key 到节点的映射
@@ -257,6 +259,8 @@ class XSFArcLfuList {
             // 若链表为空，删除对应频率到链表的映射
             freq2nodes_.erase(min_freq_);
         }
+        // 更新最小频率
+        min_freq_ = freq2nodes_.begin()->first;
     }
 
     struct Node {
@@ -270,7 +274,7 @@ class XSFArcLfuList {
     uint8_t min_freq_{0};
 
     std::unordered_map<K, uint8_t, Hash, KeyEqual> key2freq_;
-    std::unordered_map<uint8_t, std::list<Node>> freq2nodes_;
+    std::map<uint8_t, std::list<Node>> freq2nodes_;
     std::unordered_map<K, typename std::list<Node>::iterator, Hash, KeyEqual>
         key2node_;
     XSFArcGhostList<K, Hash, KeyEqual> ghost_list_;
@@ -293,7 +297,7 @@ class XSFArcCache : public XSFCache<K, V> {
         if (capacity_ == 0) {
             return;
         }
-
+        std::lock_guard<std::mutex> lock(mutex_);
         bool in_lru = lru_list_.contains(key);
         bool in_lfu = lfu_list_.contains(key);
         if (!in_lru && !in_lfu) {
@@ -316,7 +320,7 @@ class XSFArcCache : public XSFCache<K, V> {
         if (capacity_ == 0) {
             return std::nullopt;
         }
-
+        std::lock_guard<std::mutex> lock(mutex_);
         bool in_lru = lru_list_.contains(key);
         bool in_lfu = lfu_list_.contains(key);
         if (!in_lru && !in_lfu) {
@@ -366,6 +370,7 @@ class XSFArcCache : public XSFCache<K, V> {
     const uint8_t k_{DEFAULT_K};
     XSFArcLruList<K, V, Hash, KeyEqual> lru_list_;
     XSFArcLfuList<K, V, Hash, KeyEqual> lfu_list_;
+    std::mutex mutex_;
 };
 
 template <typename K, typename V, typename Hash = std::hash<K>,

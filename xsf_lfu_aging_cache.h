@@ -2,6 +2,7 @@
 #define XSF_LFU_AGING_CACHE_H
 
 #include <list>
+#include <map>
 #include <mutex>
 #include <unordered_map>
 #include <vector>
@@ -119,7 +120,7 @@ class XSFLfuAgingCache : public XSFCache<K, V> {
             freq2nodes_.erase(freq);
             if (freq == min_freq_) {
                 // 更新最小频率
-                min_freq_++;
+                min_freq_ = freq2nodes_.begin()->first;
             }
         }
         // 更新 key 到节点的映射
@@ -143,6 +144,8 @@ class XSFLfuAgingCache : public XSFCache<K, V> {
             // 若链表为空，删除对应频率到链表的映射
             freq2nodes_.erase(min_freq_);
         }
+        // 更新最小频率
+        min_freq_ = freq2nodes_.begin()->first;
     }
 
     struct Node {
@@ -159,7 +162,7 @@ class XSFLfuAgingCache : public XSFCache<K, V> {
     std::mutex mutex_;
 
     std::unordered_map<K, uint8_t, Hash, KeyEqual> key2freq_;
-    std::unordered_map<uint8_t, std::list<Node>> freq2nodes_;
+    std::map<uint8_t, std::list<Node>> freq2nodes_;
     std::unordered_map<K, typename std::list<Node>::iterator, Hash, KeyEqual>
         key2node_;
 };
