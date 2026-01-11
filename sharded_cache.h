@@ -1,21 +1,23 @@
-#ifndef XSF_SHARDED_CACHE_H
-#define XSF_SHARDED_CACHE_H
+#ifndef MOMU_SIMPLE_CACHE_SHARDED_CACHE_H
+#define MOMU_SIMPLE_CACHE_SHARDED_CACHE_H
 
 #include <memory>
 #include <thread>
 #include <utility>
 #include <vector>
 
-#include "xsf_cache.h"
+#include "cache.h"
 
-namespace xsf_simple_cache {
+namespace momu {
+
+namespace simple_cache {
 
 template <typename K, typename V, typename Hash = std::hash<K>>
-class XSFShardedCache : public XSFCache<K, V> {
+class ShardedCache : public Cache<K, V> {
    public:
-    XSFShardedCache(size_t capacity, XSFCacheCreator<K, V>& creator,
-                    size_t shard_num = std::thread::hardware_concurrency(),
-                    Hash hash = Hash())
+    ShardedCache(size_t capacity, CacheCreator<K, V>& creator,
+                 size_t shard_num = std::thread::hardware_concurrency(),
+                 Hash hash = Hash())
         : capacity_(capacity),
           shard_num_(std::max(size_t(1), shard_num)),
           hash_(std::move(hash)) {
@@ -44,7 +46,7 @@ class XSFShardedCache : public XSFCache<K, V> {
    private:
     bool isZeroCapacity() const { return capacity_ == 0; }
 
-    void initializeShards(XSFCacheCreator<K, V>& creator) {
+    void initializeShards(CacheCreator<K, V>& creator) {
         auto capacities = calculateShardCapacities();
         createShards(creator, capacities);
     }
@@ -79,7 +81,7 @@ class XSFShardedCache : public XSFCache<K, V> {
         return std::max(capacity, size_t(1));
     }
 
-    void createShards(XSFCacheCreator<K, V>& creator,
+    void createShards(CacheCreator<K, V>& creator,
                       const std::vector<size_t>& capacities) {
         shards_.reserve(shard_num_);
         for (size_t capacity : capacities) {
@@ -87,7 +89,7 @@ class XSFShardedCache : public XSFCache<K, V> {
         }
     }
 
-    XSFCache<K, V>* getShardForKey(const K& key) {
+    Cache<K, V>* getShardForKey(const K& key) {
         size_t shard_index = calculateShardIndex(key);
         return shards_[shard_index].get();
     }
@@ -99,9 +101,11 @@ class XSFShardedCache : public XSFCache<K, V> {
     const size_t capacity_;
     const size_t shard_num_;
     Hash hash_;
-    std::vector<std::unique_ptr<XSFCache<K, V>>> shards_;
+    std::vector<std::unique_ptr<Cache<K, V>>> shards_;
 };
 
-}  // namespace xsf_simple_cache
+}  // namespace simple_cache
 
-#endif  // XSF_SHARDED_CACHE_H
+}  // namespace momu
+
+#endif  // MOMU_SIMPLE_CACHE_SHARDED_CACHE_H

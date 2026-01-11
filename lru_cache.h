@@ -1,5 +1,5 @@
-#ifndef XSF_LRU_CACHE_H
-#define XSF_LRU_CACHE_H
+#ifndef MOMU_SIMPLE_CACHE_LRU_CACHE_H
+#define MOMU_SIMPLE_CACHE_LRU_CACHE_H
 
 #include <functional>
 #include <list>
@@ -7,16 +7,18 @@
 #include <mutex>
 #include <unordered_map>
 
-#include "xsf_cache.h"
+#include "cache.h"
 
-namespace xsf_simple_cache {
+namespace momu {
+
+namespace simple_cache {
 
 template <typename K, typename V, typename Hash = std::hash<K>,
           typename KeyEqual = std::equal_to<K>>
-class XSFLruCache : public XSFCache<K, V> {
+class LruCache : public Cache<K, V> {
    public:
-    explicit XSFLruCache(size_t capacity, Hash hash = Hash{},
-                         KeyEqual key_equal = KeyEqual{})
+    explicit LruCache(size_t capacity, Hash hash = Hash{},
+                      KeyEqual key_equal = KeyEqual{})
         : capacity_(capacity), key2node_(0, hash, key_equal) {}
 
     void put(const K& key, const V& value) override {
@@ -117,14 +119,14 @@ class XSFLruCache : public XSFCache<K, V> {
 
 template <typename K, typename V, typename Hash = std::hash<K>,
           typename KeyEqual = std::equal_to<K>>
-class XSFLruCacheCreator : public XSFCacheCreator<K, V> {
+class LruCacheCreator : public CacheCreator<K, V> {
    public:
-    explicit XSFLruCacheCreator(Hash hash = Hash{}, KeyEqual eq = KeyEqual{})
+    explicit LruCacheCreator(Hash hash = Hash{}, KeyEqual eq = KeyEqual{})
         : hash_(std::move(hash)), key_equal_(std::move(eq)) {}
 
-    std::unique_ptr<XSFCache<K, V>> create(size_t capacity) const override {
-        return std::make_unique<XSFLruCache<K, V, Hash, KeyEqual>>(
-            capacity, hash_, key_equal_);
+    std::unique_ptr<Cache<K, V>> create(size_t capacity) const override {
+        return std::make_unique<LruCache<K, V, Hash, KeyEqual>>(capacity, hash_,
+                                                                key_equal_);
     }
 
    private:
@@ -132,6 +134,8 @@ class XSFLruCacheCreator : public XSFCacheCreator<K, V> {
     KeyEqual key_equal_;
 };
 
-}  // namespace xsf_simple_cache
+}  // namespace simple_cache
 
-#endif  // XSF_LRU_CACHE_H
+}  // namespace momu
+
+#endif  // MOMU_SIMPLE_CACHE_LRU_CACHE_H

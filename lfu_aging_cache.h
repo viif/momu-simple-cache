@@ -1,5 +1,5 @@
-#ifndef XSF_LFU_AGING_CACHE_H
-#define XSF_LFU_AGING_CACHE_H
+#ifndef MOMU_SIMPLE_CACHE_LFU_AGING_CACHE_H
+#define MOMU_SIMPLE_CACHE_LFU_AGING_CACHE_H
 
 #include <list>
 #include <map>
@@ -7,20 +7,21 @@
 #include <unordered_map>
 #include <vector>
 
-#include "xsf_cache.h"
+#include "cache.h"
 
-namespace xsf_simple_cache {
+namespace momu {
+
+namespace simple_cache {
 
 template <typename K, typename V, typename Hash = std::hash<K>,
           typename KeyEqual = std::equal_to<K>>
-class XSFLfuAgingCache : public XSFCache<K, V> {
+class LfuAgingCache : public Cache<K, V> {
    public:
     static constexpr uint8_t DEFAULT_AGING_THRESHOLD = 10;
 
-    explicit XSFLfuAgingCache(size_t capacity,
-                              uint8_t aging_threshold = DEFAULT_AGING_THRESHOLD,
-                              Hash hash = Hash{},
-                              KeyEqual key_equal = KeyEqual{})
+    explicit LfuAgingCache(size_t capacity,
+                           uint8_t aging_threshold = DEFAULT_AGING_THRESHOLD,
+                           Hash hash = Hash{}, KeyEqual key_equal = KeyEqual{})
         : capacity_(capacity),
           aging_threshold_(aging_threshold),
           key2freq_(0, hash, key_equal),
@@ -250,18 +251,18 @@ class XSFLfuAgingCache : public XSFCache<K, V> {
 
 template <typename K, typename V, typename Hash = std::hash<K>,
           typename KeyEqual = std::equal_to<K>>
-class XSFLfuAgingCacheCreator : public XSFCacheCreator<K, V> {
+class LfuAgingCacheCreator : public CacheCreator<K, V> {
    public:
-    using cache_type = XSFLfuAgingCache<K, V, Hash, KeyEqual>;
+    using cache_type = LfuAgingCache<K, V, Hash, KeyEqual>;
 
-    explicit XSFLfuAgingCacheCreator(
+    explicit LfuAgingCacheCreator(
         Hash hash = Hash{}, KeyEqual eq = KeyEqual(),
         uint8_t aging_threshold = cache_type::DEFAULT_AGING_THRESHOLD)
         : hash_(std::move(hash)),
           key_equal_(std::move(eq)),
           aging_threshold_(aging_threshold) {}
 
-    std::unique_ptr<XSFCache<K, V>> create(size_t capacity) const override {
+    std::unique_ptr<Cache<K, V>> create(size_t capacity) const override {
         return std::make_unique<cache_type>(capacity, aging_threshold_, hash_,
                                             key_equal_);
     }
@@ -273,6 +274,8 @@ class XSFLfuAgingCacheCreator : public XSFCacheCreator<K, V> {
     KeyEqual key_equal_;
 };
 
-}  // namespace xsf_simple_cache
+}  // namespace simple_cache
 
-#endif  // XSF_LFU_AGING_CACHE_H
+}  // namespace momu
+
+#endif  // MOMU_SIMPLE_CACHE_LFU_AGING_CACHE_H

@@ -1,20 +1,22 @@
-#ifndef XSF_LRU_K_CACHE_H
-#define XSF_LRU_K_CACHE_H
+#ifndef MOMU_SIMPLE_CACHE_LRU_K_CACHE_H
+#define MOMU_SIMPLE_CACHE_LRU_K_CACHE_H
 
 #include <list>
 #include <mutex>
 #include <unordered_map>
 
-#include "xsf_cache.h"
+#include "cache.h"
 
-namespace xsf_simple_cache {
+namespace momu {
+
+namespace simple_cache {
 
 template <typename K, typename V, typename Hash = std::hash<K>,
           typename KeyEqual = std::equal_to<K>>
-class XSFLruCacheUnsafe : public XSFCache<K, V> {
+class LruCacheUnsafe : public Cache<K, V> {
    public:
-    explicit XSFLruCacheUnsafe(size_t capacity, Hash hash = Hash{},
-                               KeyEqual key_equal = KeyEqual{})
+    explicit LruCacheUnsafe(size_t capacity, Hash hash = Hash{},
+                            KeyEqual key_equal = KeyEqual{})
         : capacity_(capacity), key2node_(0, hash, key_equal) {}
 
     void put(const K& key, const V& value) override {
@@ -138,12 +140,12 @@ class XSFLruCacheUnsafe : public XSFCache<K, V> {
 
 template <typename K, typename V, typename Hash = std::hash<K>,
           typename KeyEqual = std::equal_to<K>>
-class XSFLruKCache : public XSFCache<K, V> {
+class LruKCache : public Cache<K, V> {
    public:
     static constexpr uint8_t DEFAULT_K = 2;
 
-    explicit XSFLruKCache(size_t capacity, uint8_t k = DEFAULT_K,
-                          Hash hash = Hash{}, KeyEqual key_equal = KeyEqual{})
+    explicit LruKCache(size_t capacity, uint8_t k = DEFAULT_K,
+                       Hash hash = Hash{}, KeyEqual key_equal = KeyEqual{})
         : k_(k),
           capacity_(capacity),
           history_lru_(capacity, hash, key_equal),
@@ -284,10 +286,9 @@ class XSFLruKCache : public XSFCache<K, V> {
         return record.value;
     }
 
-    XSFLruCacheUnsafe<K, AccessRecord, Hash, KeyEqual>
-        history_lru_;  // 访问次数小于 k 的记录
-    XSFLruCacheUnsafe<K, V, Hash, KeyEqual>
-        cache_lru_;  // 访问次数达到 k 的记录
+    LruCacheUnsafe<K, AccessRecord, Hash, KeyEqual>
+        history_lru_;                                 // 访问次数小于 k 的记录
+    LruCacheUnsafe<K, V, Hash, KeyEqual> cache_lru_;  // 访问次数达到 k 的记录
 
     const uint8_t k_;  // 访问次数阈值
     const size_t capacity_;
@@ -296,15 +297,15 @@ class XSFLruKCache : public XSFCache<K, V> {
 
 template <typename K, typename V, typename Hash = std::hash<K>,
           typename KeyEqual = std::equal_to<K>>
-class XSFLruKCacheCreator : public XSFCacheCreator<K, V> {
+class LruKCacheCreator : public CacheCreator<K, V> {
    public:
-    using cache_type = XSFLruKCache<K, V, Hash, KeyEqual>;
+    using cache_type = LruKCache<K, V, Hash, KeyEqual>;
 
-    explicit XSFLruKCacheCreator(Hash hash = Hash{}, KeyEqual eq = KeyEqual(),
-                                 uint8_t k = cache_type::DEFAULT_K)
+    explicit LruKCacheCreator(Hash hash = Hash{}, KeyEqual eq = KeyEqual(),
+                              uint8_t k = cache_type::DEFAULT_K)
         : hash_(std::move(hash)), key_equal_(std::move(eq)), k_(k) {}
 
-    std::unique_ptr<XSFCache<K, V>> create(size_t capacity) const override {
+    std::unique_ptr<Cache<K, V>> create(size_t capacity) const override {
         return std::make_unique<cache_type>(capacity, k_, hash_, key_equal_);
     }
 
@@ -315,6 +316,8 @@ class XSFLruKCacheCreator : public XSFCacheCreator<K, V> {
     KeyEqual key_equal_;
 };
 
-}  // namespace xsf_simple_cache
+}  // namespace simple_cache
 
-#endif  // XSF_LRU_K_CACHE_H
+}  // namespace momu
+
+#endif  // MOMU_SIMPLE_CACHE_LRU_K_CACHE_H

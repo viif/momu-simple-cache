@@ -1,5 +1,5 @@
-#ifndef XSF_ARC_CACHE_H
-#define XSF_ARC_CACHE_H
+#ifndef MOMU_SIMPLE_CACHE_ARC_CACHE_H
+#define MOMU_SIMPLE_CACHE_ARC_CACHE_H
 
 #include <functional>
 #include <list>
@@ -8,16 +8,18 @@
 #include <mutex>
 #include <unordered_map>
 
-#include "xsf_cache.h"
+#include "cache.h"
 
-namespace xsf_simple_cache {
+namespace momu {
+
+namespace simple_cache {
 
 template <typename K, typename Hash = std::hash<K>,
           typename KeyEqual = std::equal_to<K>>
-class XSFArcGhostList {
+class ArcGhostList {
    public:
-    explicit XSFArcGhostList(size_t capacity, Hash hash = Hash{},
-                             KeyEqual key_equal = KeyEqual{})
+    explicit ArcGhostList(size_t capacity, Hash hash = Hash{},
+                          KeyEqual key_equal = KeyEqual{})
         : capacity_(capacity), key2key_(0, hash, key_equal) {}
 
     void put(const K& key) {
@@ -92,10 +94,10 @@ class XSFArcGhostList {
 
 template <typename K, typename V, typename Hash = std::hash<K>,
           typename KeyEqual = std::equal_to<K>>
-class XSFArcLruList {
+class ArcLruList {
    public:
-    explicit XSFArcLruList(size_t capacity, Hash hash = Hash{},
-                           KeyEqual key_equal = KeyEqual{})
+    explicit ArcLruList(size_t capacity, Hash hash = Hash{},
+                        KeyEqual key_equal = KeyEqual{})
         : capacity_(capacity),
           key2node_(0, hash, key_equal),
           ghost_list_(capacity, hash, key_equal) {}
@@ -219,15 +221,15 @@ class XSFArcLruList {
     std::list<Node> nodes_;
     std::unordered_map<K, typename std::list<Node>::iterator, Hash, KeyEqual>
         key2node_;
-    XSFArcGhostList<K, Hash, KeyEqual> ghost_list_;
+    ArcGhostList<K, Hash, KeyEqual> ghost_list_;
 };
 
 template <typename K, typename V, typename Hash = std::hash<K>,
           typename KeyEqual = std::equal_to<K>>
-class XSFArcLfuList {
+class ArcLfuList {
    public:
-    explicit XSFArcLfuList(size_t capacity, Hash hash = Hash{},
-                           KeyEqual key_equal = KeyEqual{})
+    explicit ArcLfuList(size_t capacity, Hash hash = Hash{},
+                        KeyEqual key_equal = KeyEqual{})
         : capacity_(capacity),
           key2freq_(0, hash, key_equal),
           key2node_(0, hash, key_equal),
@@ -391,17 +393,17 @@ class XSFArcLfuList {
     std::map<uint8_t, std::list<Node>> freq2nodes_;
     std::unordered_map<K, typename std::list<Node>::iterator, Hash, KeyEqual>
         key2node_;
-    XSFArcGhostList<K, Hash, KeyEqual> ghost_list_;
+    ArcGhostList<K, Hash, KeyEqual> ghost_list_;
 };
 
 template <typename K, typename V, typename Hash = std::hash<K>,
           typename KeyEqual = std::equal_to<K>>
-class XSFArcCache : public XSFCache<K, V> {
+class ArcCache : public Cache<K, V> {
    public:
     static constexpr uint8_t DEFAULT_K = 3;
 
-    explicit XSFArcCache(size_t capacity, uint8_t k = DEFAULT_K,
-                         Hash hash = Hash{}, KeyEqual key_equal = KeyEqual{})
+    explicit ArcCache(size_t capacity, uint8_t k = DEFAULT_K,
+                      Hash hash = Hash{}, KeyEqual key_equal = KeyEqual{})
         : capacity_(capacity),
           k_(k),
           lru_list_(capacity - capacity / 2, hash, key_equal),
@@ -536,23 +538,23 @@ class XSFArcCache : public XSFCache<K, V> {
 
     const size_t capacity_;
     const uint8_t k_{DEFAULT_K};
-    XSFArcLruList<K, V, Hash, KeyEqual> lru_list_;
-    XSFArcLfuList<K, V, Hash, KeyEqual> lfu_list_;
+    ArcLruList<K, V, Hash, KeyEqual> lru_list_;
+    ArcLfuList<K, V, Hash, KeyEqual> lfu_list_;
     std::mutex mutex_;
 };
 
 template <typename K, typename V, typename Hash = std::hash<K>,
           typename KeyEqual = std::equal_to<K>>
-class XSFArcCacheCreator : public XSFCacheCreator<K, V> {
+class ArcCacheCreator : public CacheCreator<K, V> {
    public:
     static constexpr uint8_t DEFAULT_K = 3;
 
-    explicit XSFArcCacheCreator(uint8_t k = DEFAULT_K, Hash hash = Hash{},
-                                KeyEqual key_equal = KeyEqual{})
+    explicit ArcCacheCreator(uint8_t k = DEFAULT_K, Hash hash = Hash{},
+                             KeyEqual key_equal = KeyEqual{})
         : k_(k), hash_(hash), key_equal_(key_equal) {}
 
-    std::unique_ptr<XSFCache<K, V>> create(size_t capacity) const override {
-        return std::make_unique<XSFArcCache<K, V, Hash, KeyEqual>>(
+    std::unique_ptr<Cache<K, V>> create(size_t capacity) const override {
+        return std::make_unique<ArcCache<K, V, Hash, KeyEqual>>(
             capacity, k_, hash_, key_equal_);
     }
 
@@ -563,6 +565,8 @@ class XSFArcCacheCreator : public XSFCacheCreator<K, V> {
     const KeyEqual key_equal_;
 };
 
-}  // namespace xsf_simple_cache
+}  // namespace simple_cache
 
-#endif  // XSF_ARC_CACHE_H
+}  // namespace momu
+
+#endif  // MOMU_SIMPLE_CACHE_ARC_CACHE_H
